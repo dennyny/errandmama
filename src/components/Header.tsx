@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom';
 import { Phone, MessageCircle, Mail } from 'lucide-react';
 
 const Header: React.FC = () => {
-  const whatsappNumber = '2348123456789';
-  const phoneNumber = '+234 812 345 6789';
+  const whatsappNumber = '2348060000960';
+  const phoneNumber = '+2348060000960';
   
   return (
     <header className="bg-white shadow-sm sticky top-0 z-50">

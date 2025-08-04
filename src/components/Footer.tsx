@@ -2,8 +2,8 @@ import React from 'react';
 import { Phone, MessageCircle, Mail, MapPin } from 'lucide-react';
 
 const Footer: React.FC = () => {
-  const whatsappNumber = '2348123456789';
-  const phoneNumber = '+234 812 345 6789';
+  const whatsappNumber = '2348060000960';
+  const phoneNumber = '+2348060000960';
   const email = 'hello@errandmama.ng';
 
   return (

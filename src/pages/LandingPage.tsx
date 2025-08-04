@@ -17,8 +17,8 @@ import ServiceCard from '../components/ServiceCard';
 import { serviceTiers } from '../data/services';
 
 const LandingPage: React.FC = () => {
-  const whatsappNumber = '2348123456789';
-  const phoneNumber = '+234 812 345 6789';
+  const whatsappNumber = '2348060000960';
+  const phoneNumber = '+2348060000960';
   const email = 'hello@errandmama.ng';
 
   return (
