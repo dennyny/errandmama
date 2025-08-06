@@ -19,7 +19,7 @@ const sampleRequests: ErrandRequest[] = [
   {
     id: 'EM001234',
     customerName: 'Adebayo Johnson',
-    phoneNumber: '+2348060000960',
+    phoneNumber: '+234 801 234 5678',
     email: 'adebayo@email.com',
     address: 'Victoria Island, Lagos',
     serviceType: 'sharp-sharp',
@@ -37,7 +37,7 @@ const sampleRequests: ErrandRequest[] = [
   {
     id: 'EM001235',
     customerName: 'Funmi Adebayo',
-    phoneNumber: '+2348060000960',
+    phoneNumber: '+234 802 345 6789',
     email: 'funmi@email.com',
     address: 'Lekki, Lagos',
     serviceType: 'market-runs',
