@@ -1,20 +1,27 @@
+export interface UploadedFile {
+  id: string;
+  name: string;
+  size: number;
+  type: string;
+  url?: string;
+}
+
 export interface ErrandRequest {
   id: string;
   customerName: string;
-  phoneNumber: string;
-  email: string;
-  address: string;
-  serviceType: 'sharp-sharp' | 'market-runs' | 'others';
-  errandTitle: string;
+  customerEmail: string;
+  customerPhone: string;
+  pickupLocation: string;
+  deliveryLocation?: string;
+  serviceType: string;
   description: string;
-  preferredDate: string;
+  urgency: 'low' | 'normal' | 'high';
   specialInstructions?: string;
-  budget?: string;
-  status: 'new' | 'assigned' | 'in-progress' | 'completed';
+  status: 'pending' | 'in-progress' | 'completed' | 'cancelled';
   submissionDate: string;
   dueDate: string;
-  price: number;
   adminNotes?: string;
+  uploadedFiles?: UploadedFile[];
 }
 
 export interface ServiceTier {

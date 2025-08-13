@@ -1,5 +1,5 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   ArrowRight, 
   CheckCircle, 
@@ -14,12 +14,32 @@ import {
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import ServiceCard from '../components/ServiceCard';
+import AuthModal from '../components/AuthModal';
 import { serviceTiers } from '../data/services';
+import { useErrand } from '../context/ErrandContext';
 
 const LandingPage: React.FC = () => {
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [selectedServiceId, setSelectedServiceId] = useState<string>('');
+  const { user, loginUser, signupUser } = useErrand();
+  const navigate = useNavigate();
   const whatsappNumber = '2348060000960';
   const phoneNumber = '+2348060000960';
   const email = 'hello@errandmama.ng';
+
+  const handleAuthRequired = (serviceId: string) => {
+    setSelectedServiceId(serviceId);
+    setShowAuthModal(true);
+  };
+
+  // Navigate to order page when user becomes authenticated
+  React.useEffect(() => {
+    if (user.isAuthenticated && showAuthModal && selectedServiceId) {
+      setShowAuthModal(false);
+      navigate(`/order/${selectedServiceId}`);
+      setSelectedServiceId('');
+    }
+  }, [user.isAuthenticated, showAuthModal, selectedServiceId, navigate]);
 
   return (
     <div className="min-h-screen bg-white">
@@ -106,7 +126,7 @@ const LandingPage: React.FC = () => {
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {serviceTiers.map((service) => (
-              <ServiceCard key={service.id} service={service} />
+              <ServiceCard key={service.id} service={service} onAuthRequired={handleAuthRequired} />
             ))}
           </div>
         </div>
@@ -295,8 +315,31 @@ const LandingPage: React.FC = () => {
           </div>
         </div>
       </section>
-
+      
       <Footer />
+      
+      <AuthModal 
+        isOpen={showAuthModal}
+        onClose={() => {
+          setShowAuthModal(false);
+          setSelectedServiceId('');
+        }}
+        initialMode="login"
+        onLogin={async (email: string, password: string) => {
+          const success = await loginUser(email, password);
+          if (!success) {
+            return false;
+          }
+          return true;
+        }}
+        onSignup={async (userData: any) => {
+          const success = await signupUser(userData);
+          if (!success) {
+            return false;
+          }
+          return true;
+        }}
+      />
     </div>
   );
 };

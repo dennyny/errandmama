@@ -1,12 +1,33 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import ServiceCard from '../components/ServiceCard';
+import AuthModal from '../components/AuthModal';
 import { serviceTiers } from '../data/services';
 import { ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useErrand } from '../context/ErrandContext';
 
 const ServicesPage: React.FC = () => {
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [selectedServiceId, setSelectedServiceId] = useState<string>('');
+  const { user, loginUser, signupUser } = useErrand();
+  const navigate = useNavigate();
+
+  const handleAuthRequired = (serviceId: string) => {
+    setSelectedServiceId(serviceId);
+    setShowAuthModal(true);
+  };
+
+  // Navigate to order page when user becomes authenticated
+  React.useEffect(() => {
+    if (user.isAuthenticated && showAuthModal && selectedServiceId) {
+      setShowAuthModal(false);
+      navigate(`/order/${selectedServiceId}`);
+      setSelectedServiceId('');
+    }
+  }, [user.isAuthenticated, showAuthModal, selectedServiceId, navigate]);
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
@@ -32,7 +53,7 @@ const ServicesPage: React.FC = () => {
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {serviceTiers.map((service) => (
-            <ServiceCard key={service.id} service={service} />
+            <ServiceCard key={service.id} service={service} onAuthRequired={handleAuthRequired} />
           ))}
         </div>
         
@@ -67,6 +88,29 @@ const ServicesPage: React.FC = () => {
       </div>
       
       <Footer />
+      
+      <AuthModal 
+         isOpen={showAuthModal}
+         onClose={() => {
+           setShowAuthModal(false);
+           setSelectedServiceId('');
+         }}
+         initialMode="login"
+         onLogin={async (email: string, password: string) => {
+           const success = await loginUser(email, password);
+           if (!success) {
+             return false;
+           }
+           return true;
+         }}
+         onSignup={async (userData: any) => {
+           const success = await signupUser(userData);
+           if (!success) {
+             return false;
+           }
+           return true;
+         }}
+       />
     </div>
   );
 };

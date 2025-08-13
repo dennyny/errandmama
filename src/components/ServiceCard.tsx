@@ -1,11 +1,13 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Zap, ShoppingBasket, ListChecks, ArrowRight } from 'lucide-react';
 import { ServiceTier } from '../types';
 import { formatNaira } from '../utils/currency';
+import { useErrand } from '../context/ErrandContext';
 
 interface ServiceCardProps {
   service: ServiceTier;
+  onAuthRequired?: (serviceId: string) => void;
 }
 
 const iconMap = {
@@ -14,8 +16,21 @@ const iconMap = {
   'list-checks': ListChecks,
 };
 
-const ServiceCard: React.FC<ServiceCardProps> = ({ service }) => {
+const ServiceCard: React.FC<ServiceCardProps> = ({ service, onAuthRequired }) => {
   const IconComponent = iconMap[service.icon as keyof typeof iconMap];
+  const { user } = useErrand();
+  const navigate = useNavigate();
+
+  const handleServiceSelect = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (user.isAuthenticated) {
+      navigate(`/order/${service.id}`);
+    } else {
+      onAuthRequired?.(service.id);
+    }
+  };
+
+
 
   return (
     <div className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border border-gray-100">
@@ -45,13 +60,13 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service }) => {
           </ul>
         </div>
         
-        <Link
-          to={`/order/${service.id}`}
+        <button
+          onClick={handleServiceSelect}
           className="w-full bg-green-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center justify-center group"
         >
-          Select This Service
+          Select
           <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-        </Link>
+        </button>
       </div>
     </div>
   );

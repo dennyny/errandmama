@@ -1,10 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Phone, MessageCircle, Mail } from 'lucide-react';
+import { Phone, MessageCircle, Mail, User, LogOut } from 'lucide-react';
+import { useErrand } from '../context/ErrandContext';
+import AuthModal from './AuthModal';
 
 const Header: React.FC = () => {
   const whatsappNumber = '2348060000960';
   const phoneNumber = '+2348060000960';
+  const { user, logoutUser, loginUser, signupUser } = useErrand();
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [initialMode, setInitialMode] = useState<'login' | 'signup'>('login');
   
   return (
     <header className="bg-white shadow-sm sticky top-0 z-50">
@@ -41,6 +46,43 @@ const Header: React.FC = () => {
                 <MessageCircle className="w-4 h-4" />
                 <span className="text-sm">WhatsApp</span>
               </a>
+              
+              {user.isAuthenticated ? (
+                <div className="flex items-center space-x-3">
+                  <div className="flex items-center space-x-2 text-gray-700">
+                    <User className="w-4 h-4" />
+                    <span className="text-sm font-medium">{user.firstName}</span>
+                  </div>
+                  <button
+                    onClick={logoutUser}
+                    className="flex items-center space-x-1 text-gray-700 hover:text-red-600 transition-colors"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span className="text-sm">Logout</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center space-x-2">
+                  <button
+                     onClick={() => {
+                       setInitialMode('login');
+                       setShowAuthModal(true);
+                     }}
+                     className="text-green-600 hover:text-green-700 px-3 py-2 text-sm font-medium transition-colors"
+                   >
+                     Sign In
+                   </button>
+                  <button
+                    onClick={() => {
+                      setShowAuthModal(true);
+                      setInitialMode('signup');
+                    }}
+                    className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors"
+                  >
+                    Sign Up
+                  </button>
+                </div>
+              )}
             </div>
           </nav>
 
@@ -56,6 +98,26 @@ const Header: React.FC = () => {
           </div>
         </div>
       </div>
+      
+      <AuthModal 
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        initialMode={initialMode}
+        onLogin={async (email: string, password: string) => {
+          const success = await loginUser(email, password);
+          if (success) {
+            setShowAuthModal(false);
+          }
+          return success;
+        }}
+        onSignup={async (userData: any) => {
+          const success = await signupUser(userData);
+          if (success) {
+            setShowAuthModal(false);
+          }
+          return success;
+        }}
+      />
     </header>
   );
 };
