@@ -1,17 +1,35 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Upload, Check } from 'lucide-react';
+import { ArrowLeft, Upload, Check, X, FileText, Image } from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { serviceTiers } from '../data/services';
 import { lagosAreas } from '../data/lagos-areas';
 import { useErrand } from '../context/ErrandContext';
 import { formatNaira } from '../utils/currency';
+import AuthModal from '../components/AuthModal';
 
 const OrderPage: React.FC = () => {
   const { serviceType } = useParams<{ serviceType: string }>();
   const navigate = useNavigate();
-  const { addRequest } = useErrand();
+  const { addRequest, user, loginUser, signupUser } = useErrand();
+  const [showAuthModal, setShowAuthModal] = useState(false);
+
+  // Check authentication status on component mount
+  React.useEffect(() => {
+    if (!user.isAuthenticated) {
+      setShowAuthModal(true);
+    } else {
+      // Update form data when user is authenticated
+      setFormData(prev => ({
+        ...prev,
+        customerName: `${user.firstName} ${user.lastName}`,
+        email: user.email,
+        phoneNumber: user.phone,
+        address: user.location
+      }));
+    }
+  }, [user.isAuthenticated, user.firstName, user.lastName, user.email, user.phone, user.location]);
   
   const service = serviceTiers.find(s => s.id === serviceType);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -29,6 +47,9 @@ const OrderPage: React.FC = () => {
     specialInstructions: '',
     budget: ''
   });
+  
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [uploadError, setUploadError] = useState<string>('');
 
   if (!service) {
     return <div>Service not found</div>;
@@ -41,23 +62,165 @@ const OrderPage: React.FC = () => {
       [name]: value
     }));
   };
+  
+  const validateFile = (file: File): string | null => {
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+    const maxSize = 2 * 1024 * 1024; // 2MB in bytes
+    
+    if (!allowedTypes.includes(file.type)) {
+      return 'Only JPG, JPEG, PNG, and PDF files are allowed.';
+    }
+    
+    if (file.size > maxSize) {
+      return 'File size must be less than 2MB.';
+    }
+    
+    return null;
+  };
+  
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    setUploadError('');
+    
+    const validFiles: File[] = [];
+    const errors: string[] = [];
+    
+    files.forEach(file => {
+      const error = validateFile(file);
+      if (error) {
+        errors.push(`${file.name}: ${error}`);
+      } else {
+        validFiles.push(file);
+      }
+    });
+    
+    if (errors.length > 0) {
+      setUploadError(errors.join(' '));
+    }
+    
+    if (validFiles.length > 0) {
+      setUploadedFiles(prev => [...prev, ...validFiles]);
+    }
+    
+    // Reset input
+    e.target.value = '';
+  };
+  
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+  
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const files = Array.from(e.dataTransfer.files);
+    setUploadError('');
+    
+    const validFiles: File[] = [];
+    const errors: string[] = [];
+    
+    files.forEach(file => {
+      const error = validateFile(file);
+      if (error) {
+        errors.push(`${file.name}: ${error}`);
+      } else {
+        validFiles.push(file);
+      }
+    });
+    
+    if (errors.length > 0) {
+      setUploadError(errors.join(' '));
+    }
+    
+    if (validFiles.length > 0) {
+      setUploadedFiles(prev => [...prev, ...validFiles]);
+    }
+  };
+  
+  const removeFile = (index: number) => {
+    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+  
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+  
+  const getFileIcon = (fileType: string) => {
+    if (fileType.startsWith('image/')) {
+      return <Image className="w-4 h-4 text-blue-500" />;
+    }
+    return <FileText className="w-4 h-4 text-red-500" />;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!user.isAuthenticated) {
+      setShowAuthModal(true);
+      return;
+    }
+    
     setIsSubmitting(true);
     
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 2000));
     
-    const requestId = addRequest({
-      ...formData,
-      serviceType: service.id as 'sharp-sharp' | 'market-runs' | 'others',
-      price: service.price
-    });
-    
-    setSubmittedId(requestId);
-    setIsSubmitted(true);
-    setIsSubmitting(false);
+    try {
+      const requestId = await addRequest({
+        customerName: formData.customerName,
+        customerEmail: formData.email,
+        customerPhone: formData.phoneNumber,
+        pickupLocation: formData.address,
+        serviceType: service.id,
+        description: formData.description,
+        urgency: 'normal' as const,
+        specialInstructions: formData.specialInstructions,
+        uploadedFiles: uploadedFiles
+      });
+      
+      setSubmittedId(requestId);
+      setIsSubmitted(true);
+    } catch (error) {
+      console.error('Error submitting request:', error);
+      // Handle error appropriately
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleLogin = async (email: string, password: string) => {
+    const success = await loginUser(email, password);
+    if (success) {
+      setShowAuthModal(false);
+      // Update form data with user info
+      setFormData(prev => ({
+        ...prev,
+        customerName: `${user.firstName} ${user.lastName}`,
+        email: user.email,
+        phoneNumber: user.phone,
+        address: user.location
+      }));
+    }
+    return success;
+  };
+
+  const handleSignup = async (userData: any) => {
+    const success = await signupUser(userData);
+    if (success) {
+      setShowAuthModal(false);
+      // Update form data with user info
+      setFormData(prev => ({
+        ...prev,
+        customerName: `${user.firstName} ${user.lastName}`,
+        email: user.email,
+        phoneNumber: user.phone,
+        address: user.location
+      }));
+    }
+    return success;
   };
 
   if (isSubmitted) {
@@ -119,6 +282,13 @@ const OrderPage: React.FC = () => {
           <p className="text-gray-600">
             {service.description} - {formatNaira(service.price)}
           </p>
+          {!user.isAuthenticated && (
+            <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p className="text-yellow-800 text-sm">
+                Please sign in or create an account to continue with your service request.
+              </p>
+            </div>
+          )}
         </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -284,15 +454,58 @@ const OrderPage: React.FC = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Upload Reference Files (Optional)
                     </label>
-                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                    <div 
+                      className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-green-400 transition-colors cursor-pointer"
+                      onDragOver={handleDragOver}
+                      onDrop={handleDrop}
+                      onClick={() => document.getElementById('file-upload')?.click()}
+                    >
                       <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                       <p className="text-sm text-gray-600">
                         Drag and drop files here, or click to select
                       </p>
                       <p className="text-xs text-gray-400 mt-1">
-                        Images, PDFs, documents (max 10MB)
+                        Images, PDFs, documents (max 2MB)
                       </p>
+                      <input
+                        id="file-upload"
+                        type="file"
+                        multiple
+                        accept=".jpg,.jpeg,.png,.pdf"
+                        onChange={handleFileUpload}
+                        className="hidden"
+                      />
                     </div>
+                    
+                    {uploadError && (
+                      <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                        <p className="text-sm text-red-600">{uploadError}</p>
+                      </div>
+                    )}
+                    
+                    {uploadedFiles.length > 0 && (
+                      <div className="mt-4 space-y-2">
+                        <p className="text-sm font-medium text-gray-700">Uploaded Files:</p>
+                        {uploadedFiles.map((file, index) => (
+                          <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div className="flex items-center space-x-3">
+                              {getFileIcon(file.type)}
+                              <div>
+                                <p className="text-sm font-medium text-gray-900">{file.name}</p>
+                                <p className="text-xs text-gray-500">{formatFileSize(file.size)}</p>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => removeFile(index)}
+                              className="text-red-500 hover:text-red-700 transition-colors"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -358,6 +571,13 @@ const OrderPage: React.FC = () => {
       </div>
       
       <Footer />
+      
+      <AuthModal 
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        onLogin={handleLogin}
+        onSignup={handleSignup}
+      />
     </div>
   );
 };
